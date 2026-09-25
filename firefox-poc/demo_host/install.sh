@@ -2,10 +2,15 @@
 # install.sh — set up SecureVault NM host (system-level manifest) for Firefox
 #
 # What this does:
-#   1. Seeds the Keychain with the demo secret
-#   2. Creates a shell wrapper so Firefox can find the Python interpreter
-#   3. Installs the NM manifest to /Library/Application Support/Mozilla/NativeMessagingHosts/
+#   1. Compiles vault-helper.swift → vault-helper binary
+#   2. Seeds the Keychain with the demo secret (biometric ACL)
+#   3. Creates a shell wrapper so Firefox can find the Python interpreter
+#   4. Installs the NM manifest to /Library/Application Support/Mozilla/NativeMessagingHosts/
 #      (system-level — requires sudo for the copy step)
+#
+# Requirements:
+#   - Xcode Command Line Tools  (xcode-select --install)
+#   - macOS with Touch ID enrolled, or a login password set (for fallback)
 #
 # Usage:
 #   bash install.sh
@@ -16,6 +21,19 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DESKTOP_DIR="$SCRIPT_DIR/../desktop_app"
+
+# ── Preflight: Xcode Command Line Tools ───────────────────────────────────────
+
+if ! xcode-select -p &>/dev/null; then
+  echo "Xcode Command Line Tools not found — triggering installer..."
+  xcode-select --install 2>/dev/null || true
+  echo ""
+  echo "A system dialog has opened to install Xcode Command Line Tools."
+  echo "Once installation completes, re-run this script:"
+  echo "  bash $0"
+  exit 1
+fi
 
 # ── Step 0: Install Python dependencies ───────────────────────────────────────
 
@@ -54,22 +72,29 @@ else
   echo "      WARN — Homebrew not found; install geckodriver manually: https://github.com/mozilla/geckodriver/releases"
 fi
 
-# ── Step 2: Seed Keychain ─────────────────────────────────────────────────────
+# ── Step 2: Compile vault-helper ──────────────────────────────────────────────
 
-echo "[2/6] Seeding Keychain..."
-security add-generic-password \
-  -s "$HOST_NAME" \
-  -a "demo" \
-  -w "vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42" \
-  -U 2>/dev/null \
+echo "[2/6] Compiling vault-helper.swift..."
+VAULT_HELPER="$DESKTOP_DIR/vault-helper"
+VAULT_SWIFT="$DESKTOP_DIR/vault-helper.swift"
+
+swiftc "$VAULT_SWIFT" -o "$VAULT_HELPER" \
+  && echo "      OK — $VAULT_HELPER compiled" \
+  || { echo "ERROR: swiftc failed"; exit 1; }
+
+# ── Step 3: Seed Keychain (biometric ACL) ─────────────────────────────────────
+
+echo "[3/6] Seeding Keychain with biometric access control..."
+security delete-generic-password -s "$HOST_NAME" -a "demo" 2>/dev/null || true
+"$VAULT_HELPER" write "vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42" \
   && echo "      OK — secret stored in Keychain under service '$HOST_NAME'" \
-  || { echo "      WARN — Keychain seed failed (may need to allow access in popup)"; }
+  || { echo "ERROR: vault-helper write failed (is Touch ID / a password set?)"; exit 1; }
 
-# ── Step 2: Create shell wrapper ──────────────────────────────────────────────
+# ── Step 4: Create shell wrapper ──────────────────────────────────────────────
 # Firefox spawns NM hosts with a stripped PATH — /usr/bin/env python3 may fail.
 # The wrapper hardcodes the Python interpreter path found at install time.
 
-echo "[3/6] Creating run_host.sh wrapper..."
+echo "[4/6] Creating run_host.sh wrapper..."
 PYTHON3_PATH="$(which python3)"
 if [ -z "$PYTHON3_PATH" ]; then
   echo "ERROR: python3 not found in PATH"
@@ -83,9 +108,9 @@ EOF
 chmod +x "$WRAPPER"
 echo "      OK — $WRAPPER (uses $PYTHON3_PATH)"
 
-# ── Step 3: Write manifest JSON ───────────────────────────────────────────────
+# ── Step 5: Write manifest JSON ───────────────────────────────────────────────
 
-echo "[4/6] Writing manifest..."
+echo "[5/6] Writing manifest..."
 MANIFEST_JSON=$(cat << EOF
 {
   "name": "$HOST_NAME",
@@ -104,9 +129,9 @@ echo "$MANIFEST_JSON" > "$TMP_MANIFEST"
 echo "      Manifest contents:"
 cat "$TMP_MANIFEST" | sed 's/^/        /'
 
-# ── Step 4: Install manifest (needs sudo) ─────────────────────────────────────
+# ── Step 6: Install manifest (needs sudo) ─────────────────────────────────────
 
-echo "[5/6] Installing manifest to $SYSTEM_MANIFEST_DIR/$HOST_NAME.json"
+echo "[6/6] Installing manifest to $SYSTEM_MANIFEST_DIR/$HOST_NAME.json"
 echo "      This requires sudo (system-level path, root-owned)."
 
 sudo mkdir -p "$SYSTEM_MANIFEST_DIR"
@@ -115,10 +140,13 @@ sudo chmod 644 "$SYSTEM_MANIFEST_DIR/$HOST_NAME.json"
 rm "$TMP_MANIFEST"
 
 echo ""
-echo "Done. To verify:"
-echo "  cat $SYSTEM_MANIFEST_DIR/$HOST_NAME.json"
+echo "Done."
+echo ""
+echo "  vault-helper:   $VAULT_HELPER"
+echo "  Keychain item:  service=com.demo.securevault  account=demo  (biometric ACL)"
+echo "  NM manifest:    $SYSTEM_MANIFEST_DIR/$HOST_NAME.json"
 echo ""
 echo "Next:"
-echo "  1. Start the desktop app:  python $SCRIPT_DIR/../desktop_app/securevault_app.py"
+echo "  1. Start the desktop app:  python $DESKTOP_DIR/securevault_app.py"
 echo "  2. Open Firefox, click the SecureVault extension popup"
-echo "  3. Click 'Get Secret' — should return the vault token"
+echo "  3. Click 'Get Secret' — Touch ID (or password) prompt fires, then secret appears"

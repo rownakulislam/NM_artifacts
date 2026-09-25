@@ -3,13 +3,19 @@
 SecureVault Desktop App — menu bar app that holds the secret in macOS Keychain.
 
 Architecture:
-  Firefox Extension
+  Chrome Extension
       ↕  Native Messaging (stdio)
   NM Host (demo_host.py)
       ↕  Unix domain socket  ←── this process listens here
   SecureVault Desktop App
-      ↕  Keychain API (via `security` CLI)
-  macOS Keychain
+      ↕  vault-helper binary (compiled Swift)
+  macOS Data Protection Keychain  (biometric / user-presence ACL)
+
+The secret is stored with kSecAccessControlBiometryAny (Touch ID) if the
+device has biometry enrolled, otherwise kSecAccessControlUserPresence
+(password dialog).  Any other process that tries to read the same Keychain
+item directly will also trigger the auth prompt — no silent extraction via
+`security find-generic-password` is possible.
 
 The socket path is:
   ~/Library/Application Support/SecureVault/vault.sock
@@ -35,33 +41,39 @@ try:
 except ImportError:
     HAS_RUMPS = False
 
+SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
+VAULT_HELPER = os.path.join(SCRIPT_DIR, "vault-helper")
+
 SOCKET_DIR  = os.path.expanduser("~/Library/Application Support/SecureVault")
 SOCKET_PATH = os.path.join(SOCKET_DIR, "vault.sock")
-KEYCHAIN_SERVICE = "com.demo.securevault"
-KEYCHAIN_ACCOUNT = "demo"
 
 
-# ── Keychain access ───────────────────────────────────────────────────────────
+# ── Keychain access via vault-helper ─────────────────────────────────────────
 
 def keychain_get() -> str | None:
-    """Read the secret from macOS Keychain via the `security` CLI."""
+    """Read the secret via vault-helper (triggers Touch ID / password prompt)."""
+    if not os.path.exists(VAULT_HELPER):
+        print(f"[SecureVault] ERROR: vault-helper not found at {VAULT_HELPER}",
+              file=sys.stderr)
+        return None
     try:
         result = subprocess.run(
-            ["security", "find-generic-password",
-             "-s", KEYCHAIN_SERVICE,
-             "-a", KEYCHAIN_ACCOUNT,
-             "-w"],
+            [VAULT_HELPER, "read"],
             capture_output=True, text=True
         )
         if result.returncode == 0:
             return result.stdout.strip()
+        print(f"[SecureVault] vault-helper read failed: {result.stderr.strip()}",
+              file=sys.stderr)
         return None
-    except Exception:
+    except Exception as e:
+        print(f"[SecureVault] vault-helper error: {e}", file=sys.stderr)
         return None
 
 
 def keychain_ok() -> bool:
-    return keychain_get() is not None
+    """Check the vault-helper binary exists (item presence inferred from install)."""
+    return os.path.exists(VAULT_HELPER)
 
 
 # ── Socket server ─────────────────────────────────────────────────────────────
@@ -87,7 +99,7 @@ def handle_client(conn: socket.socket):
                 response = {"secret": secret,
                             "session_id": request.get("session_id")}
             else:
-                response = {"error": "Secret not found in Keychain. "
+                response = {"error": "Secret not found or auth denied. "
                                      "Run demo_host/install.sh to seed it.",
                             "session_id": request.get("session_id")}
 
@@ -147,7 +159,7 @@ if HAS_RUMPS:
 
 def run_headless():
     print("[SecureVault] rumps not installed — running as headless daemon.")
-    print(f"[SecureVault] Keychain: {'OK' if keychain_ok() else 'NOT FOUND'}")
+    print(f"[SecureVault] Keychain item: {'found' if keychain_ok() else 'NOT FOUND'}")
     print("[SecureVault] Press Ctrl+C to stop.")
     try:
         run_socket_server()

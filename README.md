@@ -15,12 +15,17 @@ Browser Extension  (popup: Get Secret / Get Version)
 NM Host  demo_host/demo_host.py
       ↕  Unix socket  ~/Library/Application Support/SecureVault/vault.sock
 Desktop App  desktop_app/securevault_app.py
-      ↕  Keychain API
-macOS Keychain  (secret stored here)
+      ↕  vault-helper binary  (compiled Swift)
+macOS Login Keychain  (ACL: only vault-helper trusted; Touch ID on read)
 ```
 
 The extension sends `{"action": "get_secret"}`. The NM host fetches the secret from
 the desktop app over a Unix socket and returns it.
+
+The secret is protected by a Keychain ACL that trusts only the `vault-helper` binary.
+Any other process attempting to read it receives a Keychain confirmation dialog. Reading
+triggers a Touch ID (or password) prompt via `LocalAuthentication` before the Keychain
+is queried.
 
 ### Defences in place
 
@@ -47,9 +52,10 @@ NM_artifacts/
 │   │   └── popup.js
 │   ├── demo_host/                                # NM host + installer
 │   │   ├── demo_host.py                          # NM host (parent-process check)
-│   │   └── install.sh                            # Seeds Keychain, installs manifest
+│   │   └── install.sh                            # Compiles vault-helper, seeds Keychain, installs manifest
 │   ├── desktop_app/                              # Menu-bar app holding the secret
-│   │   └── securevault_app.py
+│   │   ├── securevault_app.py
+│   │   └── vault-helper.swift                    # Compiled by install.sh → vault-helper binary
 │   └── attacks/
 │       ├── attack1_bidirectional_mitm.py         # Bidirectional MITM
 │       ├── attack2_host_imitation.py             # Host imitation
@@ -68,9 +74,10 @@ NM_artifacts/
     │   └── popup.js
     ├── demo_host/                                # NM host + installer
     │   ├── demo_host.py                          # NM host (parent-process check)
-    │   └── install.sh                            # Seeds Keychain, installs manifest, geckodriver
+    │   └── install.sh                            # Compiles vault-helper, seeds Keychain, installs manifest, geckodriver
     ├── desktop_app/                              # Menu-bar app holding the secret
-    │   └── securevault_app.py
+    │   ├── securevault_app.py
+    │   └── vault-helper.swift                    # Compiled by install.sh → vault-helper binary
     └── attacks/
         ├── attack1_bidirectional_mitm.py         # Bidirectional MITM
         ├── attack2_host_imitation.py             # Host imitation
@@ -92,18 +99,26 @@ NM_artifacts/
 - macOS (Keychain + Unix socket paths are macOS-specific)
 - Python 3.9+
 - Google Chrome and/or Firefox installed at default paths
+- **Xcode Command Line Tools** — required to compile `vault-helper`
+  ```bash
+  xcode-select --install
+  ```
+- **Touch ID enrolled or a login password set** — Touch ID fires on each secret read; falls back to password prompt if biometry is unavailable
 
 ### Chrome
 
-**1. Install Python dependencies, NM manifest, and seed Keychain**
+**1. Install Python dependencies, compile vault-helper, seed Keychain, install NM manifest**
 
 ```bash
 bash chrome-poc/demo_host/install.sh
 ```
 
-This installs `websockets` and `rumps`, creates `run_host.sh`, writes the NM manifest
-to `/Library/Google/Chrome/NativeMessagingHosts/com.demo.securevault.json` (requires sudo),
-and seeds the Keychain with the demo secret.
+This:
+- Installs `websockets` and `rumps` Python packages
+- Compiles `desktop_app/vault-helper.swift` → `desktop_app/vault-helper` binary
+- Seeds the Keychain with the demo secret under a Keychain ACL that trusts only the `vault-helper` binary
+- Creates `run_host.sh` wrapper (hardcodes the Python interpreter path for Chrome's stripped PATH)
+- Writes the NM manifest to `/Library/Google/Chrome/NativeMessagingHosts/com.demo.securevault.json` (requires sudo)
 
 **2. Load the victim extension**
 
@@ -125,11 +140,14 @@ A 🔐 icon appears in the menu bar. Keep it running during all tests.
 **4. Verify baseline**
 
 Click the SecureVault toolbar icon → **Get Secret**.
-Expected: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
+
+A **Touch ID prompt** (or password dialog) fires — this is expected. Approve it.
+
+Expected result: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
 
 ### Firefox
 
-**1. Install Python dependencies, geckodriver, NM manifest, and seed Keychain**
+**1. Install Python dependencies, compile vault-helper, geckodriver, seed Keychain, install NM manifest**
 
 ```bash
 bash firefox-poc/demo_host/install.sh
@@ -154,7 +172,10 @@ python firefox-poc/desktop_app/securevault_app.py
 **4. Verify baseline**
 
 Click the SecureVault toolbar icon → **Get Secret**.
-Expected: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
+
+A **Touch ID prompt** (or password dialog) fires — this is expected. Approve it.
+
+Expected result: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
 
 ---
 
@@ -217,8 +238,9 @@ Store or Mozilla AMO. Browsers block such extensions by default.
 
 ### Attack 1 — Bidirectional MITM
 
-**What it demonstrates:** Every message on the NM channel is intercepted, logged and modified if necessary 
-in both directions, the extension and host are unaware.
+**What it demonstrates:** Every message on the NM channel is intercepted, logged and modified if necessary
+in both directions, the extension and host are unaware. The desktop app reads the secret from the Keychain
+(Touch ID fires), but the attacker intercepts the secret on the NM pipe before it reaches the extension.
 
 **Flow:**
 
@@ -263,6 +285,7 @@ python firefox-poc/attacks/attack1_bidirectional_mitm.py --setup
 ```
 
 Follow the narrated steps. When prompted, click **Get Secret** in the victim extension.
+Approve the Touch ID prompt — the secret travels through the relay and is intercepted.
 
 **Expected output:** Intercepted messages printed to the terminal and written to
 `attacks/mitm_intercept.log`. The secret appears in plaintext in the `HOST->EXT` line.
