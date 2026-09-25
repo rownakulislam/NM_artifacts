@@ -1,0 +1,22 @@
+# Runtime browser profiles (generated during attacks)
+**/.attacker_profile_a1/
+**/.attacker_profile_a3/
+
+# Generated wrapper/helper scripts
+**/.mitm_wrapper.sh
+**/.host_wrapper.sh
+
+# Attack log files
+**/.host_imitation_stolen.log
+**/mitm_intercept.log
+**/.parent_check.log
+**/.attack2_argv.log
+**/.wrapper_debug.log
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store

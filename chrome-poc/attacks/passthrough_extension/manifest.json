@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "SecureVault Passthrough",
+  "version": "1.0",
+  "permissions": [
+    "nativeMessaging",
+    "alarms"
+  ],
+  "host_permissions": [
+    "ws://127.0.0.1:13500/"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "key": "PLACEHOLDER"
+}

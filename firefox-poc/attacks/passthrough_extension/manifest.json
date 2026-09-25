@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "SecureVault Passthrough",
+  "version": "1.0",
+  "permissions": [
+    "nativeMessaging"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "PLACEHOLDER"
+    }
+  }
+}

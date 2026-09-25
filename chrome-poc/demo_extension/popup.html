@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 300px;
+      padding: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      color: #202124;
+    }
+    h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      margin-bottom: 8px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .btn:hover { background: #1557b0; }
+    .btn.secondary { background: #f1f3f4; color: #202124; }
+    .btn.secondary:hover { background: #e2e4e6; }
+    #result {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      word-break: break-all;
+      line-height: 1.5;
+      display: none;
+      white-space: pre-wrap;
+    }
+    #result.success { background: #e6f4ea; color: #137333; }
+    #result.error   { background: #fce8e6; color: #c5221f; }
+    #result.loading { background: #fef7e0; color: #856404; }
+  </style>
+</head>
+<body>
+  <h2>🔐 SecureVault</h2>
+  <button class="btn" id="btnSecret">Get Secret</button>
+  <button class="btn secondary" id="btnVersion">Get Version</button>
+  <div id="result"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

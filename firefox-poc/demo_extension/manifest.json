@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "SecureVault",
+  "version": "1.0",
+  "description": "SecureVault demo extension \u2014 native messaging security research",
+  "permissions": [
+    "nativeMessaging"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "SecureVault"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "securevault@demo"
+    }
+  }
+}

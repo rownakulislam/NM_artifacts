@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "SecureVault",
+  "version": "1.0",
+  "description": "SecureVault demo extension \u2014 native messaging security research",
+  "permissions": [
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SecureVault"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArzo5AanHfX8NeEb7iy/hslfyYIvvdrUA+fkNtE+PviBepPNv1L24cHTkUdAWkcBELIkWDyOAOKa36FkXdbiuq9H4KagteHAjgou3/1+WY2op0YWmOxMcl4POjVIMH2lMIa++DGR7e8SidZzbzig+r2vjwUDr20TI4eSwTXb4JpYO8g0qqv22yFyxOK1U7Pq9vxodew9bArXmp1daqeQ4wS16lXpXnQ96B5o8vYnf3ATjacfsjUPp49/beDQIJrBUqs/hYWTBgbT9+dG9/V8PjlmNS0dSIpiHxveFFxrpvVLtiAFDEVIhQq/DfkJ6mMMaCk1wfx3ylIFYDXRKyeFgBwIDAQAB"
+}
