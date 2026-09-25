@@ -37,27 +37,50 @@ Three defenses which reflects the in-place defenses for a default target, are la
 ## Repository Layout
 
 ```
-chrome-poc/
-  demo_extension/     MV3 Chrome extension (victim)
-  demo_host/          NM host + install.sh
-  desktop_app/        Menu-bar app, holds the secret
-  attacks/
-    attack1_bidirectional_mitm.py
-    attack2_host_imitation.py
-    attack3_extension_imitation.py
-    passthrough_extension/   attacker-side Chrome extension (attack 1)
-    fake_extension/          attacker-side Chrome extension (attack 3)
-
-firefox-poc/
-  demo_extension/     MV2 Firefox extension (victim)
-  demo_host/          NM host + install.sh
-  desktop_app/        (shared with chrome-poc)
-  attacks/
-    attack1_bidirectional_mitm.py
-    attack2_host_imitation.py
-    attack3_extension_imitation.py
-    passthrough_extension/   attacker-side Firefox extension (attack 1)
-    fake_extension/          attacker-side Firefox extension (attack 3)
+NM_artifacts/
+├── README.md                                     # Setup guide and attack documentation
+├── chrome-poc/                                   # Chrome attack suite
+│   ├── demo_extension/                           # Victim Chrome extension (MV3)
+│   │   ├── manifest.json
+│   │   ├── background.js
+│   │   ├── popup.html
+│   │   └── popup.js
+│   ├── demo_host/                                # NM host + installer
+│   │   ├── demo_host.py                          # NM host (parent-process check)
+│   │   └── install.sh                            # Seeds Keychain, installs manifest
+│   ├── desktop_app/                              # Menu-bar app holding the secret
+│   │   └── securevault_app.py
+│   └── attacks/
+│       ├── attack1_bidirectional_mitm.py         # Bidirectional MITM
+│       ├── attack2_host_imitation.py             # Host imitation
+│       ├── attack3_extension_imitation.py        # Extension imitation
+│       ├── passthrough_extension/                # Attacker extension for attack 1
+│       │   ├── manifest.json
+│       │   └── background.js
+│       └── fake_extension/                       # Attacker extension for attack 3
+│           ├── manifest.json
+│           └── background.js
+└── firefox-poc/                                  # Firefox attack suite
+    ├── demo_extension/                           # Victim Firefox extension (MV2)
+    │   ├── manifest.json
+    │   ├── background.js
+    │   ├── popup.html
+    │   └── popup.js
+    ├── demo_host/                                # NM host + installer
+    │   ├── demo_host.py                          # NM host (parent-process check)
+    │   └── install.sh                            # Seeds Keychain, installs manifest, geckodriver
+    ├── desktop_app/                              # Menu-bar app holding the secret
+    │   └── securevault_app.py
+    └── attacks/
+        ├── attack1_bidirectional_mitm.py         # Bidirectional MITM
+        ├── attack2_host_imitation.py             # Host imitation
+        ├── attack3_extension_imitation.py        # Extension imitation
+        ├── passthrough_extension/                # Attacker extension for attack 1
+        │   ├── manifest.json
+        │   └── background.js
+        └── fake_extension/                       # Attacker extension for attack 3
+            ├── manifest.json
+            └── background.js
 ```
 
 ---
@@ -142,7 +165,7 @@ Expected: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
 All three attacks exploit the same two structural weaknesses before doing anything
 attack-specific:
 
-**Bypassing D1 — shadow manifest**
+**Bypassing D1 : shadow manifest**
 The NM manifest at the system level is root-owned, but the browser checks a
 *user-level* NM directory first that any process can write to without elevated privileges:
 
@@ -154,14 +177,14 @@ The NM manifest at the system level is root-owned, but the browser checks a
 A file placed there with the same host name silently overrides the system entry. No
 root required.
 
-**Bypassing D2 — genuine browser as parent**
+**Bypassing D2 : genuine browser as parent**
 The real NM host requires that its parent process is a browser instance. In attacks 1
 and 3 the real host is spawned by an attacker-controlled headless browser with an
 integrated attacker extension — the parent really is a browser binary and
 `check_parent_is_*` passes without any process spoofing. In attack 2 the attacker
 script itself acts as the NM host, so the check is never reached.
 
-**Bypassing D3 — matching the extension identity**
+**Bypassing D3 : matching the extension identity**
 When an extension calls `connectNative()`, the browser checks the calling extension's
 ID against the `allowed_origins` / `allowed_extensions` list in the NM manifest. Only
 a matching ID is permitted to open the channel. The attacker's extension (passthrough
