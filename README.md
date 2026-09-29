@@ -1,4 +1,4 @@
-# Native Messaging Security — Demo Artifact
+# Native Messaging Security: Demo Artifact
 
 Proof-of-concept artifact accompanying the paper *The Native Menace: Host-to-Browser Cross-Boundary Attacks via Native Messaging*. Demonstrates three attacks against
 the Native Messaging (NM) channel on **Chrome** and **Firefox** (macOS).
@@ -10,13 +10,25 @@ the Native Messaging (NM) channel on **Chrome** and **Firefox** (macOS).
 A minimal demo system was developed consisting of an application and extension which is the target, where the extension requests for a secret over *Native Messaging API* which was stored in the macOS keychain by the application:
 
 ```
-Browser Extension  (popup: Get Secret / Get Version)
-      ↕  Native Messaging  (stdio, length-prefixed JSON)
-NM Host  demo_host/demo_host.py
-      ↕  Unix socket  ~/Library/Application Support/SecureVault/vault.sock
-Desktop App  desktop_app/securevault_app.py
-      ↕  vault-helper binary  (compiled Swift)
-macOS Login Keychain  (ACL: only vault-helper trusted; Touch ID on read)
+┌──────────────────────────────────────────────────────────────┐
+│  Browser Extension  (popup: Get Secret / Get Version)        │
+└───────────────────────────────┬──────────────────────────────┘
+                                │ Native Messaging  (stdio, length-prefixed JSON)
+                                ▼
+┌──────────────────────────────────────────────────────────────┐
+│  NM Host  demo_host/demo_host.py                             │
+└───────────────────────────────┬──────────────────────────────┘
+                                │ Unix socket  ~/Library/.../SecureVault/vault.sock
+                                ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Desktop App  desktop_app/securevault_app.py                 │
+└───────────────────────────────┬──────────────────────────────┘
+                                │ vault-helper binary  (compiled Swift)
+                                ▼
+┌──────────────────────────────────────────────────────────────┐
+│  macOS Login Keychain                                        │
+│  (ACL: only vault-helper trusted; Touch ID on read)          │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 The extension sends `{"action": "get_secret"}`. The NM host fetches the secret from
@@ -29,13 +41,13 @@ is queried.
 
 ### Controls and Constraints in place
 
-Three existing controls and constraints which reflects the in-place safe-guard for a default target, are layered into the demo system. All three attacks must work around them.
+Three existing controls and constraints which reflects the in-place safe-guards for any target, are layered into the demo system. The attacks work around them.
 
 | # | Controls and Constraints | Implementation |
 |---|---------|----------------|
-| D1 | NM manifest installed at **system level** (root-owned, not user-writable) | `sudo` step in `install.sh` writes to `/Library/.../NativeMessagingHosts/` |
-| D2 | NM host verifies its **parent process is the browser** before responding | `check_parent_is_chrome()` / `check_parent_is_firefox()` in `demo_host.py` |
-| D3 | `allowed_origins` / `allowed_extensions` in Host manifest — only the specific victim extension may connect | Hard-coded extension ID / gecko ID in the manifest JSON |
+| C1 | NM manifest installed at **system level** (root-owned, not user-writable) | `sudo` step in `install.sh` writes to `/Library/.../NativeMessagingHosts/` |
+| C2 | NM host verifies its **parent process is the browser** before responding | `check_parent_is_chrome()` / `check_parent_is_firefox()` in `demo_host.py` |
+| C3 | `allowed_origins` / `allowed_extensions` in Host manifest, only the specific victim extension may connect | Hard-coded extension ID / gecko ID in the manifest JSON |
 
 ---
 
@@ -102,11 +114,11 @@ NM_artifacts/
 - macOS (Keychain + Unix socket paths are macOS-specific)
 - Python 3.9+
 - Google Chrome and/or Firefox installed at default paths
-- **Xcode Command Line Tools** — required to compile `vault-helper`
+- **Xcode Command Line Tools**, required to compile `vault-helper`
   ```bash
   xcode-select --install
   ```
-- **Touch ID enrolled or a login password set** — Touch ID fires on each secret read; falls back to password prompt if biometry is unavailable
+- **Touch ID enrolled or a login password set**. Touch ID fires on each secret read, falls back to a password prompt if biometry is unavailable
 
 ### Chrome
 
@@ -129,7 +141,7 @@ This:
 2. Enable **Developer mode**
 3. **Load unpacked** → select `chrome-poc/demo_extension/`
 
-The extension ID is fixed (derived from the hardcoded `key` in `manifest.json`) — it does
+The extension ID is fixed (derived from the hardcoded `key` in `manifest.json`) and does
 not change between loads.
 
 **3. Start the desktop app**
@@ -144,7 +156,7 @@ A 🔐 icon appears in the menu bar. Keep it running during all tests.
 
 Click the SecureVault toolbar icon → **Get Secret**.
 
-A **Touch ID prompt** (or password dialog) fires — this is expected. Approve it.
+A **Touch ID prompt** (or password dialog) fires, as expected. Approve it.
 
 Expected result: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
 
@@ -176,7 +188,7 @@ python firefox-poc/desktop_app/securevault_app.py
 
 Click the SecureVault toolbar icon → **Get Secret**.
 
-A **Touch ID prompt** (or password dialog) fires — this is expected. Approve it.
+A **Touch ID prompt** (or password dialog) fires, as expected. Approve it.
 
 Expected result: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
 
@@ -189,7 +201,7 @@ Expected result: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
 All three attacks exploit the same two structural weaknesses before doing anything
 attack-specific:
 
-**Bypassing D1 : shadow manifest**
+**Bypassing C1 : shadow manifest**
 The NM manifest at the system level is root-owned, which can't be modified or replaced, but the browser checks a
 *user-level* NM directory first that any process can write to without elevated privileges:
 
@@ -201,14 +213,14 @@ The NM manifest at the system level is root-owned, which can't be modified or re
 A file placed there with the same host name silently overrides the system entry. No
 root required.
 
-**Bypassing D2 : genuine browser as parent**
+**Bypassing C2 : genuine browser as parent**
 The real NM host requires that its parent process is a browser instance. In attacks 1
 and 3 the real host is spawned by an attacker-controlled headless browser with an
-integrated attacker extension — the parent really is a browser binary and
-parent check passes without any process spoofing. In attack 2 the attacker
+integrated attacker extension, so the parent really is a browser binary and
+the parent check passes without any process spoofing. In attack 2 the attacker
 script itself acts as the NM host, so the check is never reached.
 
-**Bypassing D3 : matching the extension identity**
+**Bypassing C3 : matching the extension identity**
 When an extension calls `connectNative()`, the browser checks the calling extension's
 ID against the `allowed_origins` / `allowed_extensions` list in the NM manifest. Only
 a matching ID is permitted to open the channel. The attacker's extension (passthrough
@@ -220,18 +232,18 @@ or fake) must therefore present the same ID as the victim extension.
   in `manifest.json` and also stored in plaintext in Chrome's `Default/Preferences`
   and `Default/Secure Preferences` (`extensions.settings.<id>.manifest.key`).
   Embedding the same public key into the attacker extension's `manifest.json` causes
-  Chrome to assign it the identical ID — the `allowed_origins` check passes.
+  Chrome to assign it the identical ID, so the `allowed_origins` check passes.
 - *Firefox:* The gecko ID is a plain human-readable string declared in
   `browser_specific_settings.gecko.id`. Copying that string into the attacker
-  extension's manifest is sufficient — no cryptography involved.
+  extension's manifest is sufficient, no cryptography involved.
 
 *Loading the unsigned attacker extension:*
-Attacker extensions are unpacked and unsigned — not published through the Chrome Web
+Attacker extensions are unpacked and unsigned, not published through the Chrome Web
 Store or Mozilla AMO. Browsers block such extensions by default.
 
 - *Chrome:* The attacker launches a headless Chrome instance with
   `--remote-debugging-port` and loads the extension via the CDP
-  `Extensions.loadUnpacked` command — injected programmatically through the debug
+  `Extensions.loadUnpacked` command, injected programmatically through the debug
   interface without any Developer mode requirement.
 - *Firefox:* The extension is loaded via geckodriver's `moz/addon/install` WebDriver
   endpoint with `"temporary": true`. Temporary extensions bypass AMO signature
@@ -239,7 +251,7 @@ Store or Mozilla AMO. Browsers block such extensions by default.
 
 ---
 
-### Attack 1 — Bidirectional MITM
+### Attack 1: Bidirectional MITM
 
 **What it demonstrates:** Every message on the NM channel is intercepted, logged and modified if necessary
 in both directions, the extension and host are unaware. The desktop app reads the secret from the Keychain
@@ -253,7 +265,7 @@ in both directions, the extension and host are unaware. The desktop app reads th
 │  chrome-extension://<id>  |  gecko id                │
 └─────────────────────────┬────────────────────────────┘
                           │ NM stdio
-                          │ D1: shadow manifest overrides system entry
+                          │ C1: shadow manifest overrides system entry
                           ▼
 ┌──────────────────────────────────────────────────────┐
 │  MITM Wrapper  (attacker script, no parent check)    │
@@ -267,13 +279,13 @@ in both directions, the extension and host are unaware. The desktop app reads th
                           ▼
 ┌──────────────────────────────────────────────────────┐
 │  Passthrough Extension  (attacker headless browser)  │
-│  same extension ID as victim → D3 passes             │
+│  same extension ID as victim → C3 passes             │
 └─────────────────────────┬────────────────────────────┘
                           │ NM stdio  (_real manifest)
                           ▼
 ┌──────────────────────────────────────────────────────┐
 │  Real NM Host                                        │
-│ spawned by headless browser → parent check passes(D2)│
+│ spawned by headless browser → parent check passes(C2)│
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -288,14 +300,14 @@ python firefox-poc/attacks/attack1_bidirectional_mitm.py --setup
 ```
 
 Follow the narrated steps. When prompted, click **Get Secret** in the victim extension.
-Approve the Touch ID prompt — the secret travels through the relay and is intercepted.
+Approve the Touch ID prompt, the secret travels through the relay and is intercepted.
 
 **Expected output:** Intercepted messages printed to the terminal and written to
 `attacks/mitm_intercept.log`. The secret appears in plaintext in the `HOST->EXT` line.
 
 ---
 
-### Attack 2 — Host Imitation
+### Attack 2: Host Imitation
 
 **What it demonstrates:** The NM host is replaced entirely by a fake. The victim
 extension receives a fabricated response; the real host is never contacted.
@@ -308,7 +320,7 @@ extension receives a fabricated response; the real host is never contacted.
 │  chrome-extension://<id>  |  gecko id                │
 └─────────────────────────┬────────────────────────────┘
                           │ NM stdio
-                          │ D1: shadow manifest overrides system entry
+                          │ C1: shadow manifest overrides system entry
                           ▼
 ┌──────────────────────────────────────────────────────┐
 │  Fake NM Host                                        │
@@ -334,10 +346,10 @@ When prompted, click **Get Secret** in the victim extension.
 
 ---
 
-### Attack 3 — Extension Imitation
+### Attack 3: Extension Imitation
 
 **What it demonstrates:** A fake extension assumes the victim extension's identity and
-connects directly to the real NM host — without the victim extension being involved
+connects directly to the real NM host, without the victim extension being involved
 at all.
 
 **Flow:**
@@ -345,14 +357,14 @@ at all.
 ```
 ┌──────────────────────────────────────────────────────┐
 │  Fake Extension  (attacker headless browser)         │
-│  same extension ID as victim → D3 passes             │
+│  same extension ID as victim → C3 passes             │
 └─────────────────────────┬────────────────────────────┘
                           │ NM stdio
-                          │ D1: user-level manifest, no root needed
+                          │ C1: user-level manifest, no root needed
                           ▼
 ┌──────────────────────────────────────────────────────┐
 │  Real NM Host                                        │
-│ spawned by headless browser → parent check passes(D2)│
+│ spawned by headless browser → parent check passes(C2)│
 └──────────────────────────────────────────────────────┘
 ```
 

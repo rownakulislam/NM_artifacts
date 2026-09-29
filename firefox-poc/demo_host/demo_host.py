@@ -95,7 +95,7 @@ def ask_desktop_app(request: dict) -> dict:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    # Defense: parent process check
+    # parent process check
     if not check_parent_is_firefox():
         sys.exit(1)
 

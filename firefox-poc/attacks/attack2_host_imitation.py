@@ -37,11 +37,11 @@ GECKO_ID = "securevault@demo"
 def banner():
     print("\n" + "="*65)
     print("  ATTACK 2: HOST IMITATION")
-    print("  Fake NM host replaces real host — returns fabricated secret")
+    print("  Fake NM host replaces real host, returns fabricated secret")
     print("="*65)
 
-def defence(n, msg):
-    print(f"\n  Defence {n}: {msg}")
+def control(n, msg):
+    print(f"\n  Control {n}: {msg}")
 
 def step(n, title):
     print(f"\n  Step {n}: {title}")
@@ -111,13 +111,13 @@ def write_nm(pipe, msg):
 def run_setup():
     banner()
 
-    print("\n  Defences in place:")
-    defence(1, "The NM manifest is installed at the system level "
-               "(/Library/Application Support/Mozilla/NativeMessagingHosts/) — "
+    print("\n  Controls in place:")
+    control(1, "The NM manifest is installed at the system level "
+               "(/Library/Application Support/Mozilla/NativeMessagingHosts/), "
                "root-owned, requires administrator privileges to modify.")
-    defence(2, "The manifest lists allowed_extensions — Firefox only forwards "
+    control(2, "The manifest lists allowed_extensions, Firefox only forwards "
                "connections from the specific victim extension ID to this host.")
-    defence(3, "The demo victim host verifies its parent process is Firefox "
+    control(3, "The demo victim host verifies its parent process is Firefox "
                "before responding to any request.")
 
     pause()
@@ -132,7 +132,7 @@ def run_setup():
         info("System-level manifest not found. Run install.sh first.")
         sys.exit(1)
 
-    bypass("Bypassing Defence 1: the user-level NM directory is always writable — "
+    bypass("Bypassing Control 1: the user-level NM directory is always writable, "
            "a same-named file there silently overrides the system-level entry.")
 
     pause()
@@ -146,12 +146,12 @@ def run_setup():
     info(f"allowed_extensions:  {sys_manifest['allowed_extensions']}")
     info("")
     info("Firefox extension IDs come from browser_specific_settings.gecko.id")
-    info("in the extension's manifest.json — a fixed, human-readable string.")
+    info("in the extension's manifest.json, a fixed, human-readable string.")
     info("No key derivation required.")
     info("")
     info(f"Gecko ID: {GECKO_ID}")
 
-    bypass("Bypassing Defence 2: shadow manifest sets allowed_extensions to the gecko ID — "
+    bypass("Bypassing Control 2: shadow manifest sets allowed_extensions to the gecko ID, "
            "Firefox routes the victim extension's connection to our fake host.")
 
     info("")
@@ -168,10 +168,10 @@ def run_setup():
     info(f"Shadow manifest: {SHADOW_MANIFEST}")
     info(f"Points to:       {wrapper_sh}")
     info("")
-    info("Firefox spawns the fake host directly — Firefox is its parent, so the")
+    info("Firefox spawns the fake host directly, Firefox is its parent, so the")
     info("parent check passes without spoofing.")
 
-    bypass("Bypassing Defence 3: Firefox is the real parent — no spoofing needed.")
+    bypass("Bypassing Control 3: Firefox is the real parent, no spoofing needed.")
 
     def cleanup(sig=None, frame=None):
         print("\n\n  Cleaning up...")

