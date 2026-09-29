@@ -27,11 +27,11 @@ Any other process attempting to read it receives a Keychain confirmation dialog.
 triggers a Touch ID (or password) prompt via `LocalAuthentication` before the Keychain
 is queried.
 
-### Defences in place
+### Controls and Constraints in place
 
-Three defenses which reflects the in-place defenses for a default target, are layered into the demo system. All three attacks must work around them.
+Three existing controls and constraints which reflects the in-place safe-guard for a default target, are layered into the demo system. All three attacks must work around them.
 
-| # | Defence | Implementation |
+| # | Controls and Constraints | Implementation |
 |---|---------|----------------|
 | D1 | NM manifest installed at **system level** (root-owned, not user-writable) | `sudo` step in `install.sh` writes to `/Library/.../NativeMessagingHosts/` |
 | D2 | NM host verifies its **parent process is the browser** before responding | `check_parent_is_chrome()` / `check_parent_is_firefox()` in `demo_host.py` |
@@ -40,6 +40,9 @@ Three defenses which reflects the in-place defenses for a default target, are la
 ---
 
 ## Repository Layout
+
+The scripts in this repository represents a realistic delivery vehicle. This can be packaged in a into a macOS `.app` bundle or a Windows 
+installer using standard tools.
 
 ```
 NM_artifacts/
@@ -181,13 +184,13 @@ Expected result: `vault_token_eyJhbGciOiJSUzI1NiJ9.demo_secret_42`
 
 ## Attacks
 
-### How the defences are bypassed
+### How the mechanisms are bypassed
 
 All three attacks exploit the same two structural weaknesses before doing anything
 attack-specific:
 
 **Bypassing D1 : shadow manifest**
-The NM manifest at the system level is root-owned, but the browser checks a
+The NM manifest at the system level is root-owned, which can't be modified or replaced, but the browser checks a
 *user-level* NM directory first that any process can write to without elevated privileges:
 
 | Browser | User-level path |
@@ -202,7 +205,7 @@ root required.
 The real NM host requires that its parent process is a browser instance. In attacks 1
 and 3 the real host is spawned by an attacker-controlled headless browser with an
 integrated attacker extension — the parent really is a browser binary and
-`check_parent_is_*` passes without any process spoofing. In attack 2 the attacker
+parent check passes without any process spoofing. In attack 2 the attacker
 script itself acts as the NM host, so the check is never reached.
 
 **Bypassing D3 : matching the extension identity**
