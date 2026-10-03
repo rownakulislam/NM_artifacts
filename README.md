@@ -2,9 +2,10 @@
 
 Proof-of-concept artifact accompanying the paper 
 > **The Native Menace: Host-to-Browser Cross-Boundary Attacks via Native Messaging**. <br>
-  > Jyotirmay Chauhan*, Rownak Islam*, Jason Polakis. <br>
-  > *To appear in the IEEE Symposium on Security and Privacy (S&P), 2027* <br>
-  > [PDF](#) · [BibTeX](#citation). <br>
+> Jyotirmay Chauhan*, Rownak Islam*, Jason Polakis. <br>
+> *To appear in the IEEE Symposium on Security and Privacy (S&P), 2027* <br>
+> [PDF](#) · [BibTeX](#citation). <br>
+
 Demonstrates three attacks against
 the Native Messaging (NM) channel on **Chrome** and **Firefox** (macOS).
 
