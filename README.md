@@ -2,8 +2,8 @@
 
 Proof-of-concept artifact accompanying the paper 
 > **The Native Menace: Host-to-Browser Cross-Boundary Attacks via Native Messaging**. <br>
-> Jyotirmay Chauhan*, Rownak Islam*, Jason Polakis. <br>
-> \* These authors contributed equally to this work.<br>  
+> Jyotirmay Chauhan*, Rownak Islam*, Jason Polakis. (\* Equal Contribution) <br>
+  
 > *To appear in the IEEE Symposium on Security and Privacy (S&P), 2027* <br>
 > [PDF](#) · [BibTeX](#citation). <br>
 
